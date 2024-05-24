@@ -60,6 +60,7 @@ const CodeGenerator = () => {
 
     /*
     To-do: l'utente al momento deve necessariamente cliccare due volte una volta per caricare i dati ed una che apre il link con i dati
+    a
     */
       if (isDataLoaded) {
         localStorage.setItem('contentEntries', JSON.stringify(contentEntries));

@@ -14,7 +14,7 @@ const HomePage = () => {
       setSchemaEntries(JSON.parse(sEntries));
     }
 
-        // Pulizia del localStorage dopo aver recuperato i dati
+        // pulisco del localStorage dopo aver recuperato i dati
         localStorage.removeItem('contentEntries');
         localStorage.removeItem('schemaEntries');
   }, []);
