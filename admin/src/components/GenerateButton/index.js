@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect} from 'react';
 import { useCMEditViewDataManager, useFetchClient } from '@strapi/helper-plugin';
 import Eye from '@strapi/icons/Eye';
 import { LinkButton } from '@strapi/design-system/LinkButton';
@@ -7,11 +7,12 @@ const CodeGenerator = () => {
   const { get } = useFetchClient();
   const { initialData } = useCMEditViewDataManager();
   const variabiles = useCMEditViewDataManager();
-  const [contentData, setContentData] = useState(null);
-  const [schemaData, setSchemaData] = useState(null);
+  const [contentData, setContentData] = useState([]);
+  const [schemaData, setSchemaData] = useState([]);
   const [contentEntries, setContentEntries] = useState([]);
   const [schemaEntries, setSchemaEntries] = useState([]);
   const id = window.location.pathname.split('::')[1].split('/')[1];
+  const [isDataLoaded, setIsDataLoaded] = useState(false); // Nuovo stato per tenere traccia del caricamento dei dati
 
   if (initialData.publishedAt || initialData.slug == null) {
     return null;
@@ -33,6 +34,8 @@ const CodeGenerator = () => {
     }
     setContentData(contentResponse.data);
     setContentEntries(Object.entries(contentResponse.data));
+    //localStorage.setItem('contentEntries', JSON.stringify(contentEntries));
+
   };
 
   /*
@@ -45,31 +48,26 @@ const CodeGenerator = () => {
     const schemaResponse = await get(`/content-type-builder/content-types/${variabiles.slug}`);
     setSchemaData(schemaResponse.data.data.schema);
     setSchemaEntries(Object.entries(schemaResponse.data.data.schema.attributes));
+   // localStorage.setItem('schemaEntries', JSON.stringify(schemaEntries));
+    setIsDataLoaded(true);
+
   };
 
   //metodo utilizzato per chiamare i due get 
   const openPreview = async () => {
     await getContentData();
     await getSchemaData();
-  };
 
-  //serve per stampare i div, da eliminare 
-  const renderField = (key, value) => {
-    if (typeof value === 'object' && value !== null) {
-      if (Array.isArray(value)) {
-        return value.map((item, index) => (
-          <div key={`${key}-${index}`}>
-            {Object.entries(item).map(([subKey, subValue]) => renderField(subKey, subValue))}
-          </div>
-        ));
+    /*
+    To-do: l'utente al momento deve necessariamente cliccare due volte una volta per caricare i dati ed una che apre il link con i dati
+    */
+      if (isDataLoaded) {
+        localStorage.setItem('contentEntries', JSON.stringify(contentEntries));
+        localStorage.setItem('schemaEntries', JSON.stringify(schemaEntries));
+        window.open('/admin/plugins/static-web-page-gen', '_blank');
+        setIsDataLoaded(false);
       }
-      return Object.entries(value).map(([subKey, subValue]) => renderField(subKey, subValue));
-    }
-    return (
-      <div key={key}>
-        <strong>{key}:</strong> {value}
-      </div>
-    );
+
   };
 
   return (
@@ -79,26 +77,12 @@ const CodeGenerator = () => {
         startIcon={<Eye />}
         style={{ width: '100%' }}
         onClick={openPreview}
+        
         variant="secondary"
       >
         Open Template Page
       </LinkButton>
-      {contentData && (
-        <div>
-          <h2>Content Data</h2>
-          {contentEntries.map(([key, value]) => renderField(key, value))}
-        </div>
-      )}
-      {schemaData && (
-        <div>
-          <h2>Schema Data</h2>
-          {schemaEntries.map(([key, value]) => (
-            <div key={key}>
-              <strong>{key}</strong>: {value.type}
-            </div>
-          ))}
-        </div>
-      )}
+
     </div>
   );
 };
