@@ -1,8 +1,13 @@
 import React, { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
-
+import {
+  useFetchClient,
+} from "@strapi/helper-plugin";
 const HomePage = () => {
+  const { get } = useFetchClient();
   const [combinedData, setCombinedData] = useState([]);
+  const [stylingFiles,setFiles] = useState([]);
+  const [selectedTheme, setSelectedTheme] = useState("");
 
   useEffect(() => {
     // Prendo combinedData dal local storage
@@ -14,7 +19,59 @@ const HomePage = () => {
 
     // pulisco il  localStorage dopo aver caricato i dati per evitare di mantenere i dati dopo il refresh
     localStorage.removeItem("combinedData");
+
+    // Chiamo la funzione per ottenere i file di stile
+    getStylingFiles();
   }, []);
+
+
+
+const getSelectedFile = (fileName) => {
+  console.log("selezionato",fileName);
+
+  setSelectedTheme(fileName);
+};
+
+useEffect(() => {
+  // Quando viene selezionato un nuovo file, aggiungilo come un nuovo elemento <link> al tag <head>
+  if (selectedTheme) {
+    const link = document.createElement("link");
+    link.href = `http://localhost:8081${selectedTheme}`; //To-Do generalizzare l'host
+    link.rel = "stylesheet";
+    link.type = "text/css";
+    document.head.appendChild(link);
+  }
+}, [selectedTheme]);
+
+
+const handleResetClick = () => {
+  // Rimuovi il link CSS dal tag <head>
+  const link = document.querySelector(`link[href$="${selectedTheme}"]`);
+  if (link) {
+    link.remove();
+    setSelectedTheme(null);
+  }
+};
+
+  /**
+   * Metodo utilizzato per ottenere l'elenco dei file .css presenti nel media library
+   * essi corrispondono ai temi che si potranno applicare nel html generato
+   */
+  const getStylingFiles = async () => {
+    try {
+      const response = await get(`/upload/files?&_q=.css`); //conterrà il json completo contenente tutti i media che terminano con .css
+      console.log(response);
+      const fileList = response.data.results; //estraggo dal json la sezione results
+    fileList.forEach(file => {
+      console.log(file.name); //prendo il nome da ciascun result
+    });
+
+    setFiles(fileList);
+    
+    } catch (error) {
+      console.error("Errore nel fetching dei file di styling:", error);
+    }
+  };
 
   //metodo per gestire il contentType "block". Esso è un richtext che supporta diverse tipologie di formattazioni ed anche multimedia
   const renderBlock = (block, index) => {
@@ -100,7 +157,6 @@ const HomePage = () => {
           </button>
         );
       default:
-        // Handle unknown component types
         return null;
     }
   }
@@ -235,18 +291,50 @@ const HomePage = () => {
     });
   };
 
+  //da spostare - Estetica per il menu selezione del tema
+  const styles = {
+    select: {
+      padding: '10px',
+      fontSize: '16px',
+      borderRadius: '4px',
+      border: '1px solid #ccc',
+      margin: '10px 0',
+      width: '100%',
+      boxSizing: 'border-box',
+    },
+    option: {
+      fontSize: '16px',
+    },
+    button:{
+      padding: '10px',
+      fontSize: '16px',
+      borderRadius: '4px',
+      border: '1px solid #ccc',
+      margin: '10px 0',
+    },
+  };
   //da aggiungere una funzione dove sarà possibile selezionare dei file css da applicare al html generato
   return (
-    <div>
-      <select>
-        <option value="" selected disabled hidden>
+    <div >
+      <select style={styles.select}
+      onChange={(event) => getSelectedFile(event.target.value)} //mi passo il value ovvero l'url
+      >
+        <option value="" selected disabled hidden style={styles.option}>
           Scegli il tema da applicare
         </option>
-        <option value="1">One</option>
+        {stylingFiles.map(file => ( //itero i nomi dei file per mostrarli nel menu, il value contiene già l'url del file per semplicità invece mostro in html il nome
+          <option key={file.id} value={file.url} style={styles.option}>
+            {file.name}
+          
+          </option>
+        ))}
       </select>
+      <button onClick={handleResetClick} style={styles.button}>Ripristina</button>
+
       {generateHTML()}
     </div>
   );
+  
 };
 
 export default HomePage;
