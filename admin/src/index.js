@@ -14,7 +14,7 @@ export default {
       icon: PluginIcon,
       intlLabel: {
         id: `${pluginId}.plugin.name`,
-        defaultMessage: "Preview Page",
+        defaultMessage: "Page Preview",
       },
       Component: async () => {
         const component = await import('./pages/App');
