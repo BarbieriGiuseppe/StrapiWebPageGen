@@ -29,13 +29,9 @@ const CodeGenerator = () => {
   const getContentData = async () => {
     let contentResponse;
     if (variabiles.isSingleType) {
-      contentResponse = await get(
-        `/content-manager/single-types/${variabiles.slug}`
-      );
+      contentResponse = await get( `/content-manager/single-types/${variabiles.slug}`);
     } else {
-      contentResponse = await get(
-        `/content-manager/collection-types/${variabiles.slug}/${id}`
-      );
+      contentResponse = await get(`/content-manager/collection-types/${variabiles.slug}/${id}`);
     }
     setContentData(Object.entries(contentResponse.data));
   };
@@ -50,6 +46,7 @@ const CodeGenerator = () => {
       `/content-type-builder/content-types/${variabiles.slug}`
     );
     setSchemaData(Object.entries(schemaResponse.data.data.schema.attributes));
+    console.log("Stampa getSchemaData",schemaData);
   };
 
   /**
@@ -80,7 +77,7 @@ const CodeGenerator = () => {
 
     // Aggiorno lo state con i nuovi dati
     setComponentsData(updatedComponentsData);
-    console.log(updatedComponentsData);
+    console.log("Stampa getComponentData",updatedComponentsData);
   };
 
   /**
@@ -107,7 +104,7 @@ const CodeGenerator = () => {
       }));
 
     setCombinedData(combinedArray);
-
+    console.log("Dati iniziali", initialData)
     console.log("Combined Data:", combinedArray);
 
     combinedArray.forEach((item) => {
@@ -130,9 +127,9 @@ const CodeGenerator = () => {
                 matchingComponent.attributes
               ).map(([key, value]) => ({ [key]: value.type }));
               subItem.__component = attributeTypes;
-            } //else {
-            //console.log("Nessuna corrispondenza per", subItem.__component);
-            // }
+            } else {
+            console.log("Nessuna corrispondenza per", subItem.__component);
+             }
           }
         });
       }

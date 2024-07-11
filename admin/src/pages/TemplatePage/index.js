@@ -2,9 +2,9 @@ import React, { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useFetchClient } from "@strapi/helper-plugin";
 
-const HomePage = () => {
+const TemplatePage = () => {
   const { get } = useFetchClient();
-  const [combinedData, setCombinedData] = useState([]);
+  const [combinedData, setCombinedData] = useState([]); 
   const [stylingFiles, setStylingFiles] = useState([]);
   const [selectedTheme, setSelectedTheme] = useState("");
   const [error, setError] = useState(null);
@@ -12,30 +12,30 @@ const HomePage = () => {
   const port = window.location.port;
 
   useEffect(() => {
-    const combData = localStorage.getItem("combinedData");
-    if (combData) {
+    const combData = localStorage.getItem("combinedData"); //prendo i dati passati da GenerateButton nel localStorage
+    if (combData) { //se sono presenti
       setCombinedData(JSON.parse(combData));
-      localStorage.removeItem("combinedData");
+      localStorage.removeItem("combinedData"); //li rimuovo una volta caricati
     }
-    getStylingFiles();
+    getStylingFiles(); //chiamo la funzione per caricare i temi
   }, []);
 
-  const getStylingFiles = async () => {
+  const getStylingFiles = async () => { //funzione asincrona che mi ritorna i temi presenti nel media library
     try {
-      const response = await get(`/upload/files?&_q=.css`);
-      setStylingFiles(response.data.results);
-    } catch (error) {
+      const response = await get(`/upload/files?&_q=.css`); //eseguo una chiamata di tipo GET al media library di Strapi filtrando i soli file in formato .css
+      setStylingFiles(response.data.results); //imposto la variabile di stato con i temi trovati
+    } catch (error) { //in caso di errore 
       console.error("Errore nel fetching dei file di styling:", error);
       setError("Failed to load styling files.");
-    } 
+    }
   };
 
-  const getSelectedFile = (fileName) => {
+  const getSelectedFile = (fileName) => { //imposto il tema selezionato
     setSelectedTheme(fileName);
   };
 
   useEffect(() => {
-    if (selectedTheme) {
+    if (selectedTheme) { //se viene selezionato un tema, importa quest'ultimo nella sezione head dell'HTML
       const link = document.createElement("link");
       link.href = `http://${hostName}:${port}${selectedTheme}`;
       link.rel = "stylesheet";
@@ -48,10 +48,16 @@ const HomePage = () => {
     }
   }, [selectedTheme]);
 
-  const handleResetClick = () => {
+  const handleResetClick = () => { //al click del pulsante ripristina, rimuovi il tema applicato
     setSelectedTheme("");
   };
 
+  /**
+   * 
+   * @param {*} block 
+   * @param {*} index 
+   * @returns 
+   */
   const renderBlock = (block, index) => {
     switch (block.type) {
       case "paragraph":
@@ -96,6 +102,15 @@ const HomePage = () => {
     }
   };
 
+  /**
+   * 
+   * @param {*} componentType 
+   * @param {*} componentValue 
+   * @param {*} key 
+   * @param {*} dynamicIndex 
+   * @param {*} index 
+   * @returns 
+   */
   const renderDynamicZoneValue = (
     componentType,
     componentValue,
@@ -108,7 +123,7 @@ const HomePage = () => {
       case "text":
         return (
           <ReactMarkdown key={`${dynamicIndex}-${index}`}
-          className={`${key}`}
+            className={`${key}`}
           >
             {componentValue}
           </ReactMarkdown>
@@ -129,7 +144,7 @@ const HomePage = () => {
       case "boolean":
         return (
           <button key={`${dynamicIndex}-${index}`}
-          className={`${key}`}
+            className={`${key}`}
           >
             {componentValue}
           </button>
@@ -139,12 +154,18 @@ const HomePage = () => {
     }
   };
 
+  /**
+   * Questo è il metodo principale, si occupa della generazione dell'html 
+   * degli elementi non innestati o non facenti parte di ulteriori array come i blocchi o dyn zone
+   * 
+   * @returns l'html appropriato
+   */
   const generateHTML = () => {
     return combinedData.map((element, index) => {
       let item;
 
       switch (element.type) {
-        case "string":
+        case "string": //utilizzo ReactMarkdown per gestire automaticamente eventuale testo formattato
           item = <ReactMarkdown key={index} className={`${element.name}`}>{element.value}</ReactMarkdown>;
         case "datetime":
           item = <ReactMarkdown key={index} className={`${element.name}`}>{element.value}</ReactMarkdown>;
@@ -153,19 +174,19 @@ const HomePage = () => {
         case "text":
           item = (
             <ReactMarkdown key={index}
-            className={`${element.name}`}
+              className={`${element.name}`}
             >
               {element.value}
             </ReactMarkdown>
           );
           break;
-        case "boolean":
+        case "boolean": // i boolean sono trattati come bottoni
           item = <button key={index}
-          className={`${element.name}`}
+            className={`${element.name}`}
 
           >{element.value}</button>;
           break;
-        case "media":
+        case "media": //per i media mi serve l'url del media affinchè venga mostrato, viene trattato con img
           item = Array.isArray(element.value) ? element.value.map((mediaItem, mediaIndex) => (
             <img
               key={mediaIndex}
@@ -183,19 +204,19 @@ const HomePage = () => {
             />
           );
           break;
-        case "uid":
+        case "uid": // non mostare
           break;
         case "relation":
           item = Array.isArray(element.value) ? element.value.map((relationItem, relationIndex) => (
             <p key={relationIndex} >{relationItem.title}</p>
           )) : null;
           break;
-        case "blocks":
+        case "blocks": // rimanda alla funzione renderBlock, altrimenti mostra Invalid block data
           item = Array.isArray(element.value) ? element.value.map((block, blockIndex) => (
             renderBlock(block, blockIndex)
           )) : <p key={index}>Invalid block data {element.type}</p>;
           break;
-        case "dynamiczone":
+        case "dynamiczone": // rimanda alla funzione renderDynamicZoneValue
           item = Array.isArray(element.value) ? element.value.map((dynamicItem, dynamicIndex) => {
             const components = Object.keys(dynamicItem).map((key, idx) => {
               if (key === "__component" || key === "id") return null;
@@ -221,6 +242,7 @@ const HomePage = () => {
     });
   };
 
+  //Styling del bottone ripristina e della tab dei temi
   const styles = {
     container: {
       display: 'flex',
@@ -248,34 +270,34 @@ const HomePage = () => {
     },
   };
 
-  if (error) return <p>{error}</p>;
+  if (error) return <p>{error}</p>; // se si verifica un errore aggiungi un paragrafo con il valore dell'errore
 
   return (
-    <body className= "generatedBody">
-    <div className="generated">
-      <div style={styles.container}>
-        <select
-          style={styles.select}
-          onChange={(event) => getSelectedFile(event.target.value)}
-          defaultValue=""
-        >
-          <option value="" disabled hidden style={styles.option}>
-            Scegli il tema da applicare
-          </option>
-          {stylingFiles.map((file) => (
-            <option key={file.id} value={file.url} style={styles.option}>
-              {file.name}
+    <body className="generatedBody">
+      <div className="generated">
+        <div style={styles.container}>
+          <select
+            style={styles.select}
+            onChange={(event) => getSelectedFile(event.target.value)}
+            defaultValue=""
+          >
+            <option value="" disabled hidden style={styles.option}>
+              Scegli il tema da applicare
             </option>
-          ))}
-        </select>
-        <button onClick={handleResetClick} style={styles.button}>
-          Ripristina
-        </button>
+            {stylingFiles.map((file) => (
+              <option key={file.id} value={file.url} style={styles.option}>
+                {file.name}
+              </option>
+            ))}
+          </select>
+          <button onClick={handleResetClick} style={styles.button}>
+            Ripristina
+          </button>
+        </div>
+        {generateHTML()}
       </div>
-      {generateHTML()}
-    </div>
     </body>
   );
 };
 
-export default HomePage;
+export default TemplatePage;
